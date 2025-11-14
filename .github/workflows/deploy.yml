@@ -1,4 +1,4 @@
-name: Deploy to AWS S3 and CloudFront
+name: Deploy to AWS
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
