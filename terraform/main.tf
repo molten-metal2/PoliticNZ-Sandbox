@@ -11,6 +11,10 @@ provider "aws" {
   region = var.aws_region
 }
 
+#####################################################################
+# WEBSITE HOSTING
+#####################################################################
+
 # S3 bucket for website hosting
 resource "aws_s3_bucket" "website" {
   bucket = var.bucket_name
@@ -101,7 +105,8 @@ resource "aws_cloudfront_distribution" "website" {
 
   restrictions {
     geo_restriction {
-      restriction_type = "none"
+        restriction_type = "whitelist"
+        locations        = ["NZ", "AU"]
     }
   }
 
@@ -113,5 +118,46 @@ resource "aws_cloudfront_distribution" "website" {
     Name        = "PoliticNZ CloudFront"
     Environment = "Production"
   }
+}
+
+#####################################################################
+# COGNITO SETUP
+#####################################################################
+
+resource "aws_cognito_user_pool" "main" {
+  name = "politicnz-user-pool"
+
+  tags = {
+    Name        = "PoliticNZ User Pool"
+    Environment = "Production"
+  }
+}
+
+resource "aws_cognito_user_pool_domain" "main" {
+  domain       = var.cognito_domain_prefix
+  user_pool_id = aws_cognito_user_pool.main.id
+}
+
+resource "aws_cognito_user_pool_client" "main" {
+  name         = "politicnz-web-client"
+  user_pool_id = aws_cognito_user_pool.main.id
+
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = ["email", "openid", "profile"]
+
+  callback_urls = [
+    "https://${aws_cloudfront_distribution.website.domain_name}/index.html",
+    "https://${aws_cloudfront_distribution.website.domain_name}/"
+  ]
+
+  logout_urls = [
+    "https://${aws_cloudfront_distribution.website.domain_name}/index.html"
+  ]
+
+  # Supported identity providers (initially just Cognito, Google will be added in Phase 3)
+  supported_identity_providers = ["COGNITO"]
+
+  generate_secret = false
 }
 

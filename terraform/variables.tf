@@ -10,3 +10,23 @@ variable "aws_region" {
   default     = "ap-southeast-2"
 }
 
+variable "cognito_domain_prefix" {
+  description = "Prefix for Cognito hosted UI domain"
+  type        = string
+  default     = "politicnz-auth"
+}
+
+variable "google_client_id" {
+  description = "Google OAuth Client ID (will be added after Google Console setup)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth Client Secret (will be added after Google Console setup)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
