@@ -74,9 +74,17 @@
         <button onclick="window.location.href='home.html'">Go Home</button>
     </div>
 
+    <div class="user-posts-section" id="user-posts-section" style="display: none;">
+        <h2>My Posts</h2>
+        <div id="posts-loading" class="posts-loading">Loading posts...</div>
+        <div id="posts-error" class="posts-error" style="display: none;"></div>
+        <div id="user-posts" class="user-posts"></div>
+    </div>
+
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="profile-api.js"></script>
+    <script src="posts-api.js"></script>
     <script src="navbar.js"></script>
     <script src="profile.js"></script>
 </body>

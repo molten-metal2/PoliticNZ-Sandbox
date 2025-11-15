@@ -284,6 +284,17 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration.create_profile.id,
       aws_api_gateway_integration.update_profile.id,
       aws_api_gateway_integration.profile_options.id,
+      aws_api_gateway_resource.posts.id,
+      aws_api_gateway_method.create_post.id,
+      aws_api_gateway_method.get_feed.id,
+      aws_api_gateway_method.get_user_posts.id,
+      aws_api_gateway_method.update_post.id,
+      aws_api_gateway_method.delete_post.id,
+      aws_api_gateway_integration.create_post.id,
+      aws_api_gateway_integration.get_feed.id,
+      aws_api_gateway_integration.get_user_posts.id,
+      aws_api_gateway_integration.update_post.id,
+      aws_api_gateway_integration.delete_post.id,
     ]))
   }
 
@@ -296,6 +307,11 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.create_profile,
     aws_api_gateway_integration.update_profile,
     aws_api_gateway_integration.profile_options,
+    aws_api_gateway_integration.create_post,
+    aws_api_gateway_integration.get_feed,
+    aws_api_gateway_integration.get_user_posts,
+    aws_api_gateway_integration.update_post,
+    aws_api_gateway_integration.delete_post,
   ]
 }
 

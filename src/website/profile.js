@@ -8,9 +8,11 @@ if (!auth.isAuthenticated()) {
 // Store original profile data for cancel functionality
 let originalProfile = null;
 let isEditMode = false;
+let currentUserId = null;
 
 // Load profile on page load
 loadProfile();
+loadUserPosts();
 
 async function loadProfile() {
   const loading = document.getElementById('loading');
@@ -28,6 +30,7 @@ async function loadProfile() {
     
     // Store original data
     originalProfile = profile;
+    currentUserId = profile.user_id;
     
     // Populate form fields
     document.getElementById('display_name').value = profile.display_name || '';
@@ -227,5 +230,212 @@ function formatDate(isoString) {
   } catch (error) {
     return 'Invalid date';
   }
+}
+
+// Load and display user's posts
+async function loadUserPosts() {
+  const postsSection = document.getElementById('user-posts-section');
+  const postsElement = document.getElementById('user-posts');
+  const loadingElement = document.getElementById('posts-loading');
+  const errorElement = document.getElementById('posts-error');
+  
+  try {
+    postsSection.style.display = 'block';
+    loadingElement.style.display = 'block';
+    errorElement.style.display = 'none';
+    postsElement.innerHTML = '';
+    
+    const posts = await getUserPosts();
+    
+    loadingElement.style.display = 'none';
+    
+    if (posts.length === 0) {
+      postsElement.innerHTML = '<p class="no-posts">You haven\'t posted anything yet.</p>';
+      return;
+    }
+    
+    // Display each post
+    posts.forEach(post => {
+      const postElement = createPostElement(post);
+      postsElement.appendChild(postElement);
+    });
+    
+  } catch (error) {
+    console.error('Failed to load user posts:', error);
+    loadingElement.style.display = 'none';
+    errorElement.textContent = 'Failed to load posts. Please try refreshing the page.';
+    errorElement.style.display = 'block';
+  }
+}
+
+// Create post element
+function createPostElement(post) {
+  const postCard = document.createElement('div');
+  postCard.className = 'post-card';
+  postCard.dataset.postId = post.post_id;
+  
+  postCard.innerHTML = `
+    <div class="post-header">
+      <div class="post-author">
+        <strong>${escapeHtml(post.display_name)}</strong>
+        <span class="post-time">${formatPostTime(post.created_at)}</span>
+        ${post.updated_at !== post.created_at ? '<span class="post-edited">(edited)</span>' : ''}
+      </div>
+      <div class="post-actions">
+        <button class="edit-btn" onclick="editPost('${post.post_id}')">Edit</button>
+        <button class="delete-btn" onclick="deletePostConfirm('${post.post_id}')">Delete</button>
+      </div>
+    </div>
+    <div class="post-content">
+      <p class="post-text">${escapeHtml(post.content)}</p>
+    </div>
+    <div class="post-edit-form" style="display: none;">
+      <textarea class="edit-input" maxlength="280">${escapeHtml(post.content)}</textarea>
+      <div class="edit-footer">
+        <span class="edit-char-counter">${post.content.length}/280</span>
+        <div class="edit-buttons">
+          <button class="cancel-edit-btn" onclick="cancelEdit('${post.post_id}')">Cancel</button>
+          <button class="save-edit-btn" onclick="saveEdit('${post.post_id}')">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Add character counter for edit textarea
+  const editInput = postCard.querySelector('.edit-input');
+  const editCharCounter = postCard.querySelector('.edit-char-counter');
+  if (editInput && editCharCounter) {
+    editInput.addEventListener('input', () => {
+      const length = editInput.value.length;
+      editCharCounter.textContent = `${length}/280`;
+    });
+  }
+  
+  return postCard;
+}
+
+// Edit post
+window.editPost = function(postId) {
+  const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!postCard) return;
+  
+  const content = postCard.querySelector('.post-content');
+  const editForm = postCard.querySelector('.post-edit-form');
+  const actions = postCard.querySelector('.post-actions');
+  
+  content.style.display = 'none';
+  actions.style.display = 'none';
+  editForm.style.display = 'block';
+};
+
+// Cancel edit
+window.cancelEdit = function(postId) {
+  const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!postCard) return;
+  
+  const content = postCard.querySelector('.post-content');
+  const editForm = postCard.querySelector('.post-edit-form');
+  const actions = postCard.querySelector('.post-actions');
+  
+  content.style.display = 'block';
+  actions.style.display = 'flex';
+  editForm.style.display = 'none';
+};
+
+// Save edit
+window.saveEdit = async function(postId) {
+  const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!postCard) return;
+  
+  const editInput = postCard.querySelector('.edit-input');
+  const newContent = editInput.value.trim();
+  
+  if (!newContent || newContent.length > 280) {
+    alert('Post content must be between 1 and 280 characters');
+    return;
+  }
+  
+  const saveBtn = postCard.querySelector('.save-edit-btn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+  
+  try {
+    await updatePost(postId, newContent);
+    
+    // Reload posts
+    await loadUserPosts();
+  } catch (error) {
+    alert('Failed to update post: ' + error.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  }
+};
+
+// Delete post with confirmation
+window.deletePostConfirm = function(postId) {
+  if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+    deletePostAction(postId);
+  }
+};
+
+// Delete post action
+async function deletePostAction(postId) {
+  const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!postCard) return;
+  
+  // Disable delete button
+  const deleteBtn = postCard.querySelector('.delete-btn');
+  if (deleteBtn) {
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = 'Deleting...';
+  }
+  
+  try {
+    await deletePost(postId);
+    
+    // Remove post from DOM with animation
+    postCard.style.opacity = '0';
+    setTimeout(() => {
+      postCard.remove();
+      
+      // Check if posts list is empty
+      const userPosts = document.getElementById('user-posts');
+      if (userPosts.children.length === 0) {
+        userPosts.innerHTML = '<p class="no-posts">You haven\'t posted anything yet.</p>';
+      }
+    }, 300);
+  } catch (error) {
+    alert('Failed to delete post: ' + error.message);
+    if (deleteBtn) {
+      deleteBtn.disabled = false;
+      deleteBtn.textContent = 'Delete';
+    }
+  }
+}
+
+// Format post timestamp
+function formatPostTime(isoString) {
+  if (!isoString) return '';
+  
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleDateString('en-NZ', {
+      timeZone: 'Pacific/Auckland',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    return '';
+  }
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
