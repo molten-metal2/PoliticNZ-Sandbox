@@ -7,6 +7,7 @@ if (!auth.isAuthenticated()) {
 
 // Store original profile data for cancel functionality
 let originalProfile = null;
+let isEditMode = false;
 
 // Load profile on page load
 loadProfile();
@@ -41,6 +42,9 @@ async function loadProfile() {
     // Update bio counter
     updateBioCounter();
     
+    // Set to view mode initially
+    setViewMode();
+    
     // Show profile content
     loading.style.display = 'none';
     profileContent.style.display = 'block';
@@ -51,6 +55,46 @@ async function loadProfile() {
     errorContent.style.display = 'block';
   }
 }
+
+// Toggle between view and edit modes
+function setViewMode() {
+  isEditMode = false;
+  
+  // Disable form fields
+  document.getElementById('display_name').disabled = true;
+  document.getElementById('bio').disabled = true;
+  document.getElementById('political_alignment').disabled = true;
+  
+  // Show/hide buttons
+  document.getElementById('view-mode-buttons').style.display = 'block';
+  document.getElementById('edit-mode-buttons').style.display = 'none';
+  
+  // Hide messages
+  document.getElementById('success-message').style.display = 'none';
+  document.getElementById('error-message').style.display = 'none';
+}
+
+function setEditMode() {
+  isEditMode = true;
+  
+  // Enable form fields
+  document.getElementById('display_name').disabled = false;
+  document.getElementById('bio').disabled = false;
+  document.getElementById('political_alignment').disabled = false;
+  
+  // Show/hide buttons
+  document.getElementById('view-mode-buttons').style.display = 'none';
+  document.getElementById('edit-mode-buttons').style.display = 'block';
+  
+  // Hide messages
+  document.getElementById('success-message').style.display = 'none';
+  document.getElementById('error-message').style.display = 'none';
+}
+
+// Handle Edit button
+document.getElementById('editButton').addEventListener('click', () => {
+  setEditMode();
+});
 
 // Handle form submission
 document.getElementById('profileForm').addEventListener('submit', async (e) => {
@@ -105,13 +149,16 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
     };
     
     // Update profile
-    const updatedProfile = await updateProfile(updates);
+    await updateProfile(updates);
     
     // Update original profile with new data
-    originalProfile = updatedProfile;
+    originalProfile.display_name = displayName;
+    originalProfile.bio = bio;
+    originalProfile.political_alignment = politicalAlignment;
+    originalProfile.updated_at = new Date().toISOString();
     
     // Update the updated_at display
-    document.getElementById('updated_at').textContent = formatDate(updatedProfile.updated_at);
+    document.getElementById('updated_at').textContent = formatDate(originalProfile.updated_at);
     
     // Show success message
     successMessage.textContent = 'Profile updated successfully!';
@@ -119,7 +166,12 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
     
     // Re-enable button
     submitButton.disabled = false;
-    submitButton.textContent = 'Update Profile';
+    submitButton.textContent = 'Save Changes';
+    
+    // Return to view mode after successful save
+    setTimeout(() => {
+      setViewMode();
+    }, 1500);
     
   } catch (error) {
     // Show error message
@@ -128,7 +180,7 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
     
     // Re-enable button
     submitButton.disabled = false;
-    submitButton.textContent = 'Update Profile';
+    submitButton.textContent = 'Save Changes';
   }
 });
 
@@ -143,9 +195,8 @@ document.getElementById('cancelButton').addEventListener('click', () => {
     // Update bio counter
     updateBioCounter();
     
-    // Hide messages
-    document.getElementById('success-message').style.display = 'none';
-    document.getElementById('error-message').style.display = 'none';
+    // Return to view mode
+    setViewMode();
   }
 });
 
@@ -159,13 +210,14 @@ function updateBioCounter() {
   counter.textContent = `${charCount}/500 characters`;
 }
 
-// Format date for display
+// Format date for display in New Zealand time
 function formatDate(isoString) {
   if (!isoString) return 'N/A';
   
   try {
     const date = new Date(isoString);
     return date.toLocaleDateString('en-NZ', {
+      timeZone: 'Pacific/Auckland',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
