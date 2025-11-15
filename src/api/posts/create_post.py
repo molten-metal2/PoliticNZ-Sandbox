@@ -1,7 +1,9 @@
 import json
 import os
+import boto3
 import uuid
 from datetime import datetime
+from botocore.exceptions import ClientError
 
 dynamodb = boto3.resource('dynamodb')
 posts_table = dynamodb.Table(os.environ['POSTS_TABLE_NAME'])
