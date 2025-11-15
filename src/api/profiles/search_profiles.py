@@ -45,31 +45,29 @@ def lambda_handler(event, context):
     if not query:
         return success_response({'profiles': [], 'count': 0})
     
-    # Perform case-insensitive scan on DynamoDB
+    # Scan all profiles and filter in Python for case-insensitive search
     # Note: For production with large datasets, consider using DynamoDB indexes or a dedicated search service like OpenSearch
-    response = table.scan(
-        FilterExpression='contains(#dn, :query)',
-        ExpressionAttributeNames={
-            '#dn': 'display_name'
-        },
-        ExpressionAttributeValues={
-            ':query': query
-        }
-    )
-    
+    response = table.scan()
     profiles = response.get('Items', [])
     
-    # Filter profiles based on privacy settings and limit results
+    # Convert query to lowercase for case-insensitive comparison
+    query_lower = query.lower()
+    
+    # Filter profiles that match the search query (case-insensitive) and respect privacy
     filtered_profiles = []
     for profile in profiles:
-        # Determine if this is the user's own profile
-        is_own_profile = auth_user_id == profile.get('user_id')
-        filtered_profile = filter_private_profile(profile, is_own_profile)
-        filtered_profiles.append(filtered_profile)
+        display_name = profile.get('display_name', '')
         
-        # Limit to 10 results
-        if len(filtered_profiles) >= 10:
-            break
+        # Case-insensitive search
+        if query_lower in display_name.lower():
+            # Determine if this is the user's own profile
+            is_own_profile = auth_user_id == profile.get('user_id')
+            filtered_profile = filter_private_profile(profile, is_own_profile)
+            filtered_profiles.append(filtered_profile)
+            
+            # Limit to 10 results
+            if len(filtered_profiles) >= 10:
+                break
     
     return success_response({'profiles': filtered_profiles, 'count': len(filtered_profiles)})
 
