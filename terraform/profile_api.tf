@@ -93,6 +93,12 @@ data "archive_file" "update_profile_lambda" {
   output_path = "${path.module}/lambda_update_profile.zip"
 }
 
+data "archive_file" "search_profiles_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../src/api"
+  output_path = "${path.module}/lambda_search_profiles.zip"
+}
+
 resource "aws_lambda_function" "get_profile" {
   filename         = data.archive_file.get_profile_lambda.output_path
   function_name    = "politicnz-get-profile"
@@ -141,6 +147,22 @@ resource "aws_lambda_function" "update_profile" {
   }
 }
 
+resource "aws_lambda_function" "search_profiles" {
+  filename         = data.archive_file.search_profiles_lambda.output_path
+  function_name    = "politicnz-search-profiles"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "profiles/search_profiles.lambda_handler"
+  source_code_hash = data.archive_file.search_profiles_lambda.output_base64sha256
+  runtime         = "python3.12"
+  timeout         = 10
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.user_profiles.name
+    }
+  }
+}
+
 #####################################################################
 # API GATEWAY
 #####################################################################
@@ -162,6 +184,12 @@ resource "aws_api_gateway_resource" "profile" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_rest_api.main.root_resource_id
   path_part   = "profile"
+}
+
+resource "aws_api_gateway_resource" "profile_search" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.profile.id
+  path_part   = "search"
 }
 
 # GET /profile method
@@ -284,6 +312,11 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration.create_profile.id,
       aws_api_gateway_integration.update_profile.id,
       aws_api_gateway_integration.profile_options.id,
+      aws_api_gateway_resource.profile_search.id,
+      aws_api_gateway_method.search_profiles.id,
+      aws_api_gateway_method.profile_search_options.id,
+      aws_api_gateway_integration.search_profiles.id,
+      aws_api_gateway_integration.profile_search_options.id,
       aws_api_gateway_resource.posts.id,
       aws_api_gateway_method.create_post.id,
       aws_api_gateway_method.get_feed.id,
@@ -307,6 +340,8 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.create_profile,
     aws_api_gateway_integration.update_profile,
     aws_api_gateway_integration.profile_options,
+    aws_api_gateway_integration.search_profiles,
+    aws_api_gateway_integration.profile_search_options,
     aws_api_gateway_integration.create_post,
     aws_api_gateway_integration.get_feed,
     aws_api_gateway_integration.get_user_posts,
@@ -343,5 +378,82 @@ resource "aws_lambda_permission" "update_profile" {
   function_name = aws_lambda_function.update_profile.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "search_profiles" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.search_profiles.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+# GET /profile/search method
+resource "aws_api_gateway_method" "search_profiles" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.profile_search.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "search_profiles" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.profile_search.id
+  http_method             = aws_api_gateway_method.search_profiles.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.search_profiles.invoke_arn
+}
+
+# CORS OPTIONS method for /profile/search
+resource "aws_api_gateway_method" "profile_search_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.profile_search.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "profile_search_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.profile_search.id
+  http_method = aws_api_gateway_method.profile_search_options.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "profile_search_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.profile_search.id
+  http_method = aws_api_gateway_method.profile_search_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "profile_search_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.profile_search.id
+  http_method = aws_api_gateway_method.profile_search_options.http_method
+  status_code = aws_api_gateway_method_response.profile_search_options.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.profile_search_options]
 }
 

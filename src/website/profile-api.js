@@ -22,3 +22,8 @@ async function hasProfile() {
     return false;
   }
 }
+
+async function searchProfiles(query) {
+  const queryParams = buildQueryParams({ query });
+  return apiGet('/profile/search', queryParams);
+}
