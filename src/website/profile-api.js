@@ -6,7 +6,7 @@
  */
 async function getProfile() {
   try {
-    const token = auth.getTokens().accessToken;
+    const token = auth.getTokens().idToken;
     if (!token) {
       throw new Error('Not authenticated');
     }
@@ -14,7 +14,7 @@ async function getProfile() {
     const response = await fetch(`${CONFIG.API_URL}/profile`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': token,
         'Content-Type': 'application/json'
       }
     });
@@ -37,7 +37,7 @@ async function getProfile() {
 
 async function createProfile(profileData) {
   try {
-    const token = auth.getTokens().accessToken;
+    const token = auth.getTokens().idToken;
     if (!token) {
       throw new Error('Not authenticated');
     }
@@ -45,7 +45,7 @@ async function createProfile(profileData) {
     const response = await fetch(`${CONFIG.API_URL}/profile`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': token,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(profileData)
@@ -65,7 +65,7 @@ async function createProfile(profileData) {
 
 async function updateProfile(updates) {
   try {
-    const token = auth.getTokens().accessToken;
+    const token = auth.getTokens().idToken;
     if (!token) {
       throw new Error('Not authenticated');
     }
@@ -73,7 +73,7 @@ async function updateProfile(updates) {
     const response = await fetch(`${CONFIG.API_URL}/profile`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': token,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(updates)
