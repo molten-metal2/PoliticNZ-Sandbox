@@ -31,7 +31,7 @@ jobs:
           terraform_wrapper: false
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -reconfigure
         working-directory: ./terraform
 
       - name: Terraform Plan
@@ -73,6 +73,3 @@ jobs:
         run: |
           echo "✅ Deployment successful!"
           echo "🌐 Your website is live at: ${{ steps.tf_outputs.outputs.website_url }}"
-          echo "📦 S3 Bucket: ${{ steps.tf_outputs.outputs.bucket_name }}"
-          echo "☁️ CloudFront Distribution: ${{ steps.tf_outputs.outputs.cloudfront_id }}"
-

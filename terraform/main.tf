@@ -1,4 +1,12 @@
 terraform {
+  backend "s3" {
+    bucket         = "politicnz-terraform-state"
+    key            = "terraform.tfstate"
+    region         = "ap-southeast-2"
+    dynamodb_table = "politicnz-terraform-locks"
+    encrypt        = true
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -146,8 +154,8 @@ resource "aws_cognito_identity_provider" "google" {
 
   provider_details = {
     authorize_scopes = "email openid profile"
-    client_id        = var.google_client_id
-    client_secret    = var.google_client_secret
+    client_id        = var.politicnz_sandbox_google_client_id
+    client_secret    = var.politicnz_sandbox_google_client_secret
   }
 
   attribute_mapping = {
