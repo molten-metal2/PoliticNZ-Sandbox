@@ -16,14 +16,14 @@ variable "cognito_domain_prefix" {
   default     = "politicnz-auth"
 }
 
-variable "google_client_id" {
+variable "politicnz_sandbox_google_client_id" {
   description = "Google OAuth Client ID (will be added after Google Console setup)"
   type        = string
   default     = ""
   sensitive   = true
 }
 
-variable "google_client_secret" {
+variable "politicnz_sandbox_google_client_secret" {
   description = "Google OAuth Client Secret (will be added after Google Console setup)"
   type        = string
   default     = ""
