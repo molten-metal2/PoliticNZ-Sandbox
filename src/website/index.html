@@ -14,15 +14,25 @@
     </div>
     
     <div class="login-section">
-      <form action="home.html">
-        <input type="email" placeholder="Email" required>
-        <input type="password" placeholder="Password" required>
-        <button type="submit">Log In</button>
-      </form>
-            
-      <button>Create New Account</button>
+      <button onclick="auth.login()" class="google-login-btn">
+        Sign in with Google
+      </button>
     </div>
   </div>
+
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    // Check if user is already logged in
+    if (auth.isAuthenticated()) {
+      window.location.href = 'home.html';
+    }
+
+    // Handle OAuth callback (tokens in URL)
+    if (auth.parseTokensFromUrl()) {
+      window.location.href = 'home.html';
+    }
+  </script>
 </body>
 </html>
 

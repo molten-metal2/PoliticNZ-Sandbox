@@ -16,12 +16,21 @@
         <button class="post-btn" disabled>Post</button>
       </div>
 
-    <div class="feed">
+      <div class="feed">
         <h2>Feed placeholder</h2>
+      </div>
     </div>
   </main>
 
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
   <script src="navbar.js"></script>
+  <script>
+    // Protect this page - redirect to login if not authenticated
+    if (!auth.isAuthenticated()) {
+      window.location.href = 'index.html';
+    }
+  </script>
 </body>
 </html>
 
