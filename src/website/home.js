@@ -94,7 +94,8 @@ async function loadFeed() {
     
     // Display each post
     posts.forEach(post => {
-      const postElement = createPostElement(post);
+      const isOwner = post.user_id === currentUserId;
+      const postElement = createPostElement(post, isOwner, false);
       feedElement.appendChild(postElement);
     });
     
@@ -106,99 +107,5 @@ async function loadFeed() {
   }
 }
 
-// Create post element
-function createPostElement(post) {
-  const postCard = document.createElement('div');
-  postCard.className = 'post-card';
-  postCard.dataset.postId = post.post_id;
-  
-  const isOwner = post.user_id === currentUserId;
-  
-  postCard.innerHTML = `
-    <div class="post-header">
-      <div class="post-author">
-        <strong>${escapeHtml(post.display_name)}</strong>
-        <span class="post-time">${formatPostTime(post.created_at)}</span>
-        ${post.updated_at !== post.created_at ? '<span class="post-edited">(edited)</span>' : ''}
-      </div>
-      ${isOwner ? `
-        <div class="post-actions">
-          <button class="delete-btn" onclick="deletePostConfirm('${post.post_id}')">Delete</button>
-        </div>
-      ` : ''}
-    </div>
-    <div class="post-content">
-      <p class="post-text">${escapeHtml(post.content)}</p>
-    </div>
-  `;
-  
-  return postCard;
-}
-
-// Delete post with confirmation
-window.deletePostConfirm = function(postId) {
-  if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-    deletePostAction(postId);
-  }
-};
-
-// Delete post action
-async function deletePostAction(postId) {
-  const postCard = document.querySelector(`[data-post-id="${postId}"]`);
-  if (!postCard) return;
-  
-  // Disable delete button
-  const deleteBtn = postCard.querySelector('.delete-btn');
-  if (deleteBtn) {
-    deleteBtn.disabled = true;
-    deleteBtn.textContent = 'Deleting...';
-  }
-  
-  try {
-    await deletePost(postId);
-    
-    // Remove post from DOM with animation
-    postCard.style.opacity = '0';
-    setTimeout(() => {
-      postCard.remove();
-      
-      // Check if feed is empty
-      const feed = document.getElementById('feed');
-      if (feed.children.length === 0) {
-        feed.innerHTML = '<p class="no-posts">No posts yet. Be the first to post!</p>';
-      }
-    }, 300);
-  } catch (error) {
-    alert('Failed to delete post: ' + error.message);
-    if (deleteBtn) {
-      deleteBtn.disabled = false;
-      deleteBtn.textContent = 'Delete';
-    }
-  }
-}
-
-// Format post timestamp
-function formatPostTime(isoString) {
-  if (!isoString) return '';
-  
-  try {
-    const date = new Date(isoString);
-    return date.toLocaleDateString('en-NZ', {
-      timeZone: 'Pacific/Auckland',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (error) {
-    return '';
-  }
-}
-
-// Escape HTML to prevent XSS
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
+// Note: deletePostConfirm, deletePostAction, formatPostTime, and escapeHtml 
+// are now provided by post-utils.js
