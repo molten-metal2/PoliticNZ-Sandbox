@@ -55,14 +55,25 @@ async function getFeed() {
   }
 }
 
-async function getUserPosts() {
+/**
+ * Get posts for a user
+ * @param {string|null} userId - Optional user ID. If not provided, gets current user's posts
+ * @returns {Promise<Array>} Array of posts
+ */
+async function getUserPosts(userId = null) {
   try {
     const token = auth.getTokens().idToken;
     if (!token) {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${CONFIG.API_URL}/posts/user`, {
+    // Build URL with optional user_id query parameter
+    let url = `${CONFIG.API_URL}/posts/user`;
+    if (userId) {
+      url += `?user_id=${encodeURIComponent(userId)}`;
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': token,

@@ -1,17 +1,24 @@
 // Profile API Client
 
 /**
- * Get the current user's profile
+ * Get a user's profile
+ * @param {string|null} userId - Optional user ID. If not provided, gets current user's profile
  * @returns {Promise<Object>} User profile or null if not found
  */
-async function getProfile() {
+async function getProfile(userId = null) {
   try {
     const token = auth.getTokens().idToken;
     if (!token) {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${CONFIG.API_URL}/profile`, {
+    // Build URL with optional user_id query parameter
+    let url = `${CONFIG.API_URL}/profile`;
+    if (userId) {
+      url += `?user_id=${encodeURIComponent(userId)}`;
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': token,

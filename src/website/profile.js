@@ -9,10 +9,15 @@ if (!auth.isAuthenticated()) {
 let originalProfile = null;
 let isEditMode = false;
 let currentUserId = null;
+let viewedUserId = null;
+let isOwnProfile = false;
+
+// Get URL parameters
+const urlParams = new URLSearchParams(window.location.search);
+viewedUserId = urlParams.get('user_id');
 
 // Load profile on page load
 loadProfile();
-loadUserPosts();
 
 async function loadProfile() {
   const loading = document.getElementById('loading');
@@ -20,17 +25,41 @@ async function loadProfile() {
   const errorContent = document.getElementById('error-content');
   
   try {
-    const profile = await getProfile();
+    // First, get current user's profile to establish their identity
+    const currentUserProfile = await getProfile();
     
-    if (!profile) {
-      // No profile exists, redirect to onboarding
+    if (!currentUserProfile) {
+      // Current user has no profile, redirect to onboarding
       window.location.href = 'onboarding.html';
       return;
     }
     
-    // Store original data
+    currentUserId = currentUserProfile.user_id;
+    
+    // Determine if viewing own profile or another user's
+    isOwnProfile = !viewedUserId || viewedUserId === currentUserId;
+    
+    // Load the appropriate profile
+    const profile = isOwnProfile ? currentUserProfile : await getProfile(viewedUserId);
+    
+    if (!profile) {
+      // Profile doesn't exist
+      loading.style.display = 'none';
+      errorContent.innerHTML = `
+        <p>Profile not found.</p>
+        <button onclick="window.location.href='home.html'">Go Home</button>
+      `;
+      errorContent.style.display = 'block';
+      return;
+    }
+    
+    // Store original data (for editing own profile)
     originalProfile = profile;
-    currentUserId = profile.user_id;
+    
+    // Update page title
+    const pageTitle = isOwnProfile ? 'My Profile' : `${profile.display_name}'s Profile`;
+    document.title = `${pageTitle} - PoliticNZ`;
+    document.querySelector('h1').textContent = pageTitle;
     
     // Populate form fields
     document.getElementById('display_name').value = profile.display_name || '';
@@ -45,16 +74,28 @@ async function loadProfile() {
     // Update bio counter
     updateBioCounter();
     
-    // Set to view mode initially
+    // Set to view mode and show/hide edit controls
     setViewMode();
+    
+    // Show/hide edit button based on ownership
+    document.getElementById('view-mode-buttons').style.display = isOwnProfile ? 'block' : 'none';
+    document.getElementById('edit-mode-buttons').style.display = 'none';
     
     // Show profile content
     loading.style.display = 'none';
     profileContent.style.display = 'block';
     
+    // Load posts for the viewed user
+    loadUserPosts();
+    
   } catch (error) {
     console.error('Failed to load profile:', error);
     loading.style.display = 'none';
+    errorContent.innerHTML = `
+      <p>Failed to load profile. Please try again.</p>
+      <button onclick="window.location.reload()">Retry</button>
+      <button onclick="window.location.href='home.html'">Go Home</button>
+    `;
     errorContent.style.display = 'block';
   }
 }
@@ -94,14 +135,21 @@ function setEditMode() {
   document.getElementById('error-message').style.display = 'none';
 }
 
-// Handle Edit button
+// Handle Edit button (only for own profile)
 document.getElementById('editButton').addEventListener('click', () => {
-  setEditMode();
+  if (isOwnProfile) {
+    setEditMode();
+  }
 });
 
-// Handle form submission
+// Handle form submission (only for own profile)
 document.getElementById('profileForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  
+  // Prevent editing other users' profiles
+  if (!isOwnProfile) {
+    return;
+  }
   
   const submitButton = document.getElementById('submitButton');
   const successMessage = document.getElementById('success-message');
@@ -195,10 +243,8 @@ document.getElementById('cancelButton').addEventListener('click', () => {
     document.getElementById('bio').value = originalProfile.bio || '';
     document.getElementById('political_alignment').value = originalProfile.political_alignment || '';
     
-    // Update bio counter
     updateBioCounter();
     
-    // Return to view mode
     setViewMode();
   }
 });
@@ -245,19 +291,30 @@ async function loadUserPosts() {
     errorElement.style.display = 'none';
     postsElement.innerHTML = '';
     
-    const posts = await getUserPosts();
+    // Load posts for the viewed user
+    const posts = isOwnProfile ? await getUserPosts() : await getUserPosts(viewedUserId);
     
     loadingElement.style.display = 'none';
     
     if (posts.length === 0) {
-      postsElement.innerHTML = '<p class="no-posts">You haven\'t posted anything yet.</p>';
+      const noPostsMessage = isOwnProfile 
+        ? "You haven't posted anything yet."
+        : "This user hasn't posted anything yet.";
+      postsElement.innerHTML = `<p class="no-posts">${noPostsMessage}</p>`;
       return;
+    }
+    
+    // Update section title
+    const sectionTitle = postsSection.querySelector('h2');
+    if (sectionTitle) {
+      sectionTitle.textContent = isOwnProfile ? 'My Posts' : 'Posts';
     }
     
     // Display each post
     posts.forEach(post => {
-      const isOwner = true; // On profile page, all posts are by the profile owner
-      const postElement = createPostElement(post, isOwner, true); // true = show edit button
+      // Show edit button only if viewing own profile
+      const showEditButton = isOwnProfile;
+      const postElement = createPostElement(post, isOwnProfile, showEditButton);
       postsElement.appendChild(postElement);
     });
     
@@ -325,7 +382,3 @@ window.saveEdit = async function(postId) {
     saveBtn.textContent = 'Save';
   }
 };
-
-// Note: deletePostConfirm, deletePostAction, formatPostTime, and escapeHtml 
-// are now provided by post-utils.js
-
