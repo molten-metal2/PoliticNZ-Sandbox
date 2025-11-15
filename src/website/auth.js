@@ -7,7 +7,7 @@ const auth = {
   getLoginUrl() {
     return `https://${CONFIG.COGNITO_DOMAIN}/oauth2/authorize?` +
       `client_id=${CONFIG.CLIENT_ID}&` +
-      `response_type=code&` +
+      `response_type=token&` +
       `scope=email+openid+profile&` +
       `redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
   },
