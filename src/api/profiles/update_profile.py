@@ -8,6 +8,7 @@ from utils.response_builder import (
     not_found_response,
     error_handler
 )
+from utils.validators import validate_profile_data
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(os.environ['TABLE_NAME'])
@@ -24,25 +25,15 @@ def lambda_handler(event, context):
     # Parse request body
     body = json.loads(event.get('body', '{}'))
     
-    # Validate display_name if provided
-    display_name = body.get('display_name', '').strip()
-    if display_name:
-        if len(display_name) < 2:
-            return error_response('display_name must be at least 2 characters')
-        if len(display_name) > 20:
-            return error_response('display_name must not exceed 20 characters')
-    
-    # Validate bio if provided
+    # Extract fields (allowing None for fields not being updated)
+    display_name = body.get('display_name', '').strip() if body.get('display_name') else ''
     bio = body.get('bio', '').strip() if 'bio' in body else None
-    if bio is not None and len(bio) > 500:
-        return error_response('bio must not exceed 500 characters')
-    
-    # Validate political_alignment if provided
     political_alignment = body.get('political_alignment', '').strip() if 'political_alignment' in body else None
-    if political_alignment is not None:
-        valid_alignments = ['National', 'Labour', 'Independent', '']
-        if political_alignment not in valid_alignments:
-            return error_response('political_alignment must be National, Labour, or Independent')
+    
+    # Validate all provided fields
+    is_valid, error_msg = validate_profile_data(display_name, bio, political_alignment, for_update=True)
+    if not is_valid:
+        return error_response(error_msg)
     
     # Check if profile exists
     existing = table.get_item(Key={'user_id': user_id})

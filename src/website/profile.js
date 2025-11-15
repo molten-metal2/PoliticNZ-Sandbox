@@ -170,12 +170,9 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
     const politicalAlignment = document.getElementById('political_alignment').value;
     
     // Client-side validation
-    if (displayName.length < 2 || displayName.length > 20) {
-      throw new Error('Display name must be between 2 and 20 characters');
-    }
-    
-    if (bio.length > 500) {
-      throw new Error('Bio must not exceed 500 characters');
+    const validation = validateProfileData(displayName, bio, politicalAlignment);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
     }
     
     // Check if anything changed
@@ -362,8 +359,10 @@ window.saveEdit = async function(postId) {
   const editInput = postCard.querySelector('.edit-input');
   const newContent = editInput.value.trim();
   
-  if (!newContent || newContent.length > 280) {
-    alert('Post content must be between 1 and 280 characters');
+  // Validate content
+  const validation = validatePostContent(newContent);
+  if (!validation.isValid) {
+    alert(validation.error);
     return;
   }
   

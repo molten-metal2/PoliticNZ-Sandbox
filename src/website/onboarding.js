@@ -39,12 +39,9 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
     const politicalAlignment = document.getElementById('political_alignment').value;
     
     // Client-side validation
-    if (displayName.length < 2 || displayName.length > 20) {
-      throw new Error('Display name must be between 2 and 20 characters');
-    }
-    
-    if (bio.length > 500) {
-      throw new Error('Bio must not exceed 500 characters');
+    const validation = validateProfileData(displayName, bio, politicalAlignment);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
     }
     
     // Build profile data

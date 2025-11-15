@@ -44,7 +44,10 @@ postInput.addEventListener('input', () => {
 postBtn.addEventListener('click', async () => {
   const content = postInput.value.trim();
   
-  if (!content || content.length > 280) {
+  // Validate content
+  const validation = validatePostContent(content);
+  if (!validation.isValid) {
+    alert(validation.error);
     return;
   }
   

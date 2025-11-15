@@ -11,6 +11,7 @@ from utils.response_builder import (
     server_error_response,
     error_handler
 )
+from utils.validators import validate_post_content
 
 dynamodb = boto3.resource('dynamodb')
 posts_table = dynamodb.Table(os.environ['POSTS_TABLE_NAME'])
@@ -30,12 +31,9 @@ def lambda_handler(event, context):
     
     # Validate content
     content = body.get('content', '').strip()
-    if not content:
-        return error_response('Content is required')
-    
-    # Limit content length to 280 characters
-    if len(content) > 280:
-        return error_response('Content must not exceed 280 characters')
+    is_valid, error_msg = validate_post_content(content)
+    if not is_valid:
+        return error_response(error_msg)
     
     # Get user's profile to retrieve display_name
     try:
