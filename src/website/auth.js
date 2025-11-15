@@ -53,33 +53,21 @@ const auth = {
   // Check if user is authenticated
   isAuthenticated() {
     const { idToken } = this.getTokens();
-    if (!idToken) return false;
-
-    try {
-      // Decode JWT to check expiration
-      const payload = JSON.parse(atob(idToken.split('.')[1]));
-      const expirationTime = payload.exp * 1000;
-      return Date.now() < expirationTime;
-    } catch (e) {
-      return false;
-    }
+    return isTokenValid(idToken);
   },
 
   // Get user info from token
   getUserInfo() {
     const { idToken } = this.getTokens();
-    if (!idToken) return null;
-
-    try {
-      const payload = JSON.parse(atob(idToken.split('.')[1]));
-      return {
-        email: payload.email,
-        name: payload.name,
-        sub: payload.sub
-      };
-    } catch (e) {
-      return null;
-    }
+    const payload = decodeJwtToken(idToken);
+    
+    if (!payload) return null;
+    
+    return {
+      email: payload.email,
+      name: payload.name,
+      sub: payload.sub
+    };
   },
 
   // Clear tokens and logout

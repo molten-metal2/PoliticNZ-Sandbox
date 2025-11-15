@@ -38,7 +38,7 @@ function createPostElement(post, isOwner, showEditButton = false) {
           <span class="edit-char-counter">${post.content.length}/280</span>
           <div class="edit-buttons">
             <button class="cancel-edit-btn" onclick="cancelEdit('${post.post_id}')">Cancel</button>
-            <button class="save-edit-btn" onclick="saveEdit('${post.post_id}')">Save</button>
+            <button class="save-edit-btn" onclick="saveEditPost('${post.post_id}')">Save</button>
           </div>
         </div>
       </div>
@@ -61,13 +61,65 @@ function createPostElement(post, isOwner, showEditButton = false) {
 }
 
 
- // Escape HTML to prevent XSS attacks
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
+window.editPost = function(postId) {
+  const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!postCard) return;
+  
+  const content = postCard.querySelector('.post-content');
+  const editForm = postCard.querySelector('.post-edit-form');
+  const actions = postCard.querySelector('.post-actions');
+  
+  content.style.display = 'none';
+  actions.style.display = 'none';
+  editForm.style.display = 'block';
+};
+
+
+// Cancel edit - hide edit form and show content
+
+window.cancelEdit = function(postId) {
+  const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!postCard) return;
+  
+  const content = postCard.querySelector('.post-content');
+  const editForm = postCard.querySelector('.post-edit-form');
+  const actions = postCard.querySelector('.post-actions');
+  
+  content.style.display = 'block';
+  actions.style.display = 'flex';
+  editForm.style.display = 'none';
+};
+
+window.saveEdit = async function(postId, onSuccess) {
+  const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!postCard) return;
+  
+  const editInput = postCard.querySelector('.edit-input');
+  const newContent = editInput.value.trim();
+  
+  const validation = validatePostContent(newContent);
+  if (!validation.isValid) {
+    alert(validation.error);
+    return;
+  }
+  
+  const saveBtn = postCard.querySelector('.save-edit-btn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+  
+  try {
+    await updatePost(postId, newContent);
+    
+    if (onSuccess && typeof onSuccess === 'function') {
+      await onSuccess();
+    }
+  } catch (error) {
+    alert('Failed to update post: ' + error.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  }
+};
 
 window.deletePostConfirm = function(postId) {
   if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {

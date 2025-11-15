@@ -1,9 +1,7 @@
 // Onboarding flow for first-time users
 
 // Check if user is authenticated
-if (!auth.isAuthenticated()) {
-  window.location.href = 'index.html';
-}
+requireAuth();
 
 // Check if user already has a profile
 checkExistingProfile();

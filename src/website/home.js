@@ -1,9 +1,7 @@
 // Home page - Protect page and check onboarding
 
 // Protect this page - redirect to login if not authenticated
-if (!auth.isAuthenticated()) {
-  window.location.href = 'index.html';
-}
+requireAuth();
 
 let currentUserId = null;
 
