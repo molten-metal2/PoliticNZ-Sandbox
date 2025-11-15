@@ -77,19 +77,19 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 
 data "archive_file" "get_profile_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/profiles/get_profile.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_get_profile.zip"
 }
 
 data "archive_file" "create_profile_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/profiles/create_profile.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_create_profile.zip"
 }
 
 data "archive_file" "update_profile_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/profiles/update_profile.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_update_profile.zip"
 }
 
@@ -97,7 +97,7 @@ resource "aws_lambda_function" "get_profile" {
   filename         = data.archive_file.get_profile_lambda.output_path
   function_name    = "politicnz-get-profile"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "get_profile.lambda_handler"
+  handler         = "profiles/get_profile.lambda_handler"
   source_code_hash = data.archive_file.get_profile_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -113,7 +113,7 @@ resource "aws_lambda_function" "create_profile" {
   filename         = data.archive_file.create_profile_lambda.output_path
   function_name    = "politicnz-create-profile"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "create_profile.lambda_handler"
+  handler         = "profiles/create_profile.lambda_handler"
   source_code_hash = data.archive_file.create_profile_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -129,7 +129,7 @@ resource "aws_lambda_function" "update_profile" {
   filename         = data.archive_file.update_profile_lambda.output_path
   function_name    = "politicnz-update-profile"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "update_profile.lambda_handler"
+  handler         = "profiles/update_profile.lambda_handler"
   source_code_hash = data.archive_file.update_profile_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10

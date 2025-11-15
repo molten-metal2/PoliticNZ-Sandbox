@@ -83,31 +83,31 @@ resource "aws_iam_role_policy" "lambda_posts_dynamodb_policy" {
 
 data "archive_file" "create_post_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/create_post.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_create_post.zip"
 }
 
 data "archive_file" "get_feed_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/get_feed.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_get_feed.zip"
 }
 
 data "archive_file" "get_user_posts_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/get_user_posts.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_get_user_posts.zip"
 }
 
 data "archive_file" "update_post_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/update_post.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_update_post.zip"
 }
 
 data "archive_file" "delete_post_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/delete_post.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_delete_post.zip"
 }
 
@@ -115,7 +115,7 @@ resource "aws_lambda_function" "create_post" {
   filename         = data.archive_file.create_post_lambda.output_path
   function_name    = "politicnz-create-post"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "create_post.lambda_handler"
+  handler         = "posts/create_post.lambda_handler"
   source_code_hash = data.archive_file.create_post_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -132,7 +132,7 @@ resource "aws_lambda_function" "get_feed" {
   filename         = data.archive_file.get_feed_lambda.output_path
   function_name    = "politicnz-get-feed"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "get_feed.lambda_handler"
+  handler         = "posts/get_feed.lambda_handler"
   source_code_hash = data.archive_file.get_feed_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -148,7 +148,7 @@ resource "aws_lambda_function" "get_user_posts" {
   filename         = data.archive_file.get_user_posts_lambda.output_path
   function_name    = "politicnz-get-user-posts"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "get_user_posts.lambda_handler"
+  handler         = "posts/get_user_posts.lambda_handler"
   source_code_hash = data.archive_file.get_user_posts_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -164,7 +164,7 @@ resource "aws_lambda_function" "update_post" {
   filename         = data.archive_file.update_post_lambda.output_path
   function_name    = "politicnz-update-post"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "update_post.lambda_handler"
+  handler         = "posts/update_post.lambda_handler"
   source_code_hash = data.archive_file.update_post_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -180,7 +180,7 @@ resource "aws_lambda_function" "delete_post" {
   filename         = data.archive_file.delete_post_lambda.output_path
   function_name    = "politicnz-delete-post"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "delete_post.lambda_handler"
+  handler         = "posts/delete_post.lambda_handler"
   source_code_hash = data.archive_file.delete_post_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
