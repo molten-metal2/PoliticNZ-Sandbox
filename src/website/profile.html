@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - PoliticNZ</title>
+</head>
+<body>
+    <h1>My Profile</h1>
+    
+    <div id="loading">Loading profile...</div>
+    
+    <div id="profile-content" style="display: none;">
+        <form id="profileForm">
+            <div>
+                <label for="display_name">Display Name*</label>
+                <input 
+                    type="text" 
+                    id="display_name" 
+                    name="display_name" 
+                    required 
+                    minlength="2" 
+                    maxlength="20"
+                >
+                <small>2-20 characters</small>
+            </div>
+
+            <div>
+                <label for="bio">Bio</label>
+                <textarea 
+                    id="bio" 
+                    name="bio" 
+                    maxlength="500"
+                    rows="4"
+                    placeholder="Tell us about yourself"
+                ></textarea>
+                <small id="bio-counter">0/500 characters</small>
+            </div>
+
+            <div>
+                <label for="political_alignment">Political Alignment</label>
+                <select id="political_alignment" name="political_alignment">
+                    <option value="">Prefer not to say</option>
+                    <option value="National">National</option>
+                    <option value="Labour">Labour</option>
+                    <option value="Independent">Independent</option>
+                </select>
+            </div>
+
+            <div>
+                <p><strong>User ID:</strong> <span id="user_id"></span></p>
+                <p><strong>Member since:</strong> <span id="created_at"></span></p>
+                <p><strong>Last updated:</strong> <span id="updated_at"></span></p>
+            </div>
+
+            <div id="success-message" style="color: green; display: none;"></div>
+            <div id="error-message" style="color: red; display: none;"></div>
+
+            <button type="submit" id="submitButton">Update Profile</button>
+            <button type="button" id="cancelButton">Cancel</button>
+        </form>
+    </div>
+
+    <div id="error-content" style="display: none;">
+        <p>Failed to load profile. Please try again.</p>
+        <button onclick="window.location.reload()">Retry</button>
+        <button onclick="window.location.href='home.html'">Go Home</button>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="profile-api.js"></script>
+    <script src="profile.js"></script>
+</body>
+</html>
+

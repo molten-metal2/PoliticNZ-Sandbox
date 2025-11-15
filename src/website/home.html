@@ -22,15 +22,11 @@
     </div>
   </main>
 
+  <script src="home.js"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
+  <script src="profile-api.js"></script>
   <script src="navbar.js"></script>
-  <script>
-    // Protect this page - redirect to login if not authenticated
-    if (!auth.isAuthenticated()) {
-      window.location.href = 'index.html';
-    }
-  </script>
 </body>
 </html>
 

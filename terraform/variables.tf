@@ -30,3 +30,9 @@ variable "politicnz_sandbox_google_client_secret" {
   sensitive   = true
 }
 
+variable "environment" {
+  description = "Environment name for API Gateway stage"
+  type        = string
+  default     = "sandbox"
+}
+

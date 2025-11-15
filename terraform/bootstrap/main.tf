@@ -11,17 +11,10 @@ provider "aws" {
   region = "ap-southeast-2"
 }
 
-# S3 bucket for Terraform state
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "politicnz-terraform-state"
-
-  tags = {
-    Name        = "Terraform State Bucket"
-    Environment = "Production"
-  }
 }
 
-# Enable versioning to keep history of state files
 resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -30,7 +23,6 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   }
 }
 
-# Enable server-side encryption
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -41,7 +33,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" 
   }
 }
 
-# Block public access
 resource "aws_s3_bucket_public_access_block" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -51,7 +42,6 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
-# DynamoDB table for state locking
 resource "aws_dynamodb_table" "terraform_locks" {
   name         = "politicnz-terraform-locks"
   billing_mode = "PAY_PER_REQUEST"
@@ -60,11 +50,6 @@ resource "aws_dynamodb_table" "terraform_locks" {
   attribute {
     name = "LockID"
     type = "S"
-  }
-
-  tags = {
-    Name        = "Terraform State Lock Table"
-    Environment = "Production"
   }
 }
 

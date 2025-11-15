@@ -92,6 +92,32 @@ const auth = {
   // Redirect to login
   login() {
     window.location.href = this.getLoginUrl();
+  },
+
+  // Check profile and redirect appropriately after login
+  async handlePostLoginRedirect() {
+    try {
+      // Check if profile-api.js is loaded
+      if (typeof getProfile === 'undefined') {
+        console.error('profile-api.js not loaded');
+        window.location.href = 'home.html';
+        return;
+      }
+
+      const profile = await getProfile();
+      
+      if (!profile) {
+        // No profile, redirect to onboarding
+        window.location.href = 'onboarding.html';
+      } else {
+        // Profile exists, go to home
+        window.location.href = 'home.html';
+      }
+    } catch (error) {
+      console.error('Error checking profile:', error);
+      // Default to home page on error
+      window.location.href = 'home.html';
+    }
   }
 };
 

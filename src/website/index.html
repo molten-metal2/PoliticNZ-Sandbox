@@ -20,19 +20,10 @@
     </div>
   </div>
 
+  <script src="index.js"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
-  <script>
-    // Check if user is already logged in
-    if (auth.isAuthenticated()) {
-      window.location.href = 'home.html';
-    }
-
-    // Handle OAuth callback (tokens in URL)
-    if (auth.parseTokensFromUrl()) {
-      window.location.href = 'home.html';
-    }
-  </script>
+  <script src="profile-api.js"></script>
 </body>
 </html>
 

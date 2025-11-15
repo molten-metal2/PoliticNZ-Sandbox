@@ -38,3 +38,8 @@ output "google_redirect_uri" {
   value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/oauth2/idpresponse"
 }
 
+output "api_gateway_url" {
+  description = "URL of the API Gateway endpoint for profile operations"
+  value       = aws_api_gateway_stage.main.invoke_url
+}
+
