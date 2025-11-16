@@ -1,19 +1,23 @@
 <nav class="navbar">
   <div>
-    <a href="home.html" class="nav-link">Home</a>
-    <a href="profile.html" class="nav-link">Profile</a>
-    <div style="position: relative;">
+    <div class="navbar-left">
+      <a href="home.html" class="nav-link">Home</a>
+      <a href="profile.html" class="nav-link">Profile</a>
+    </div>
+    <div class="navbar-center" style="position: relative;">
       <input 
         type="text" 
         id="search-input" 
         placeholder="Search users..." 
         autocomplete="off"
       />
-      <div id="search-dropdown" style="display: none; position: absolute; background: white; border: 1px solid;">
+      <div id="search-dropdown" style="display: none;">
         <div id="search-results"></div>
       </div>
     </div>
-    <a href="#" onclick="auth.logout(); return false;" class="nav-link">Logout</a>
+    <div class="navbar-right">
+      <a href="#" onclick="auth.logout(); return false;" class="nav-link">Logout</a>
+    </div>
   </div>
 </nav>
 
