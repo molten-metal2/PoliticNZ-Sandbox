@@ -435,8 +435,28 @@ select:focus {
   border-color: #1a73e8;
 }
 
+/* Disabled state - look like read-only text */
+input[type="text"]:disabled,
+input[type="email"]:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: transparent;
+  border: none;
+  padding-left: 0;
+  color: #333;
+  cursor: default;
+  opacity: 1;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
 textarea {
   resize: vertical;
+}
+
+textarea:disabled {
+  resize: none;
 }
 
 small {
@@ -449,6 +469,10 @@ small {
 input[type="checkbox"] {
   margin-right: 8px;
   cursor: pointer;
+}
+
+input[type="checkbox"]:disabled {
+  cursor: default;
 }
 
 #privacy-notice {
@@ -512,14 +536,23 @@ button:disabled {
   cursor: not-allowed;
 }
 
-#cancelButton,
 #editButton {
+  background: none;
+  border: 1px solid #ddd;
+  color: #666;
+}
+
+#editButton:hover {
+  background-color: #f5f5f5;
+  border-color: #999;
+}
+
+#cancelButton {
   background-color: #f5f5f5;
   color: #666;
 }
 
-#cancelButton:hover,
-#editButton:hover {
+#cancelButton:hover {
   background-color: #e5e5e5;
 }
 
