@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post Detail - PoliticNZ</title>
+  <link rel="stylesheet" href="styles.css?v=1.1.0">
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <main class="main-content">
+    <div class="post-detail-container">
+      <a href="home.html" class="back-link">← Back to Feed</a>
+      
+      <div id="post-loading" class="loading">Loading post...</div>
+      <div id="post-error" class="error" style="display: none;"></div>
+      
+      <div id="post-container"></div>
+      
+      <div id="likes-section" class="likes-section" style="display: none;">
+        <h3>Liked by</h3>
+        <div id="likes-list" class="likes-list"></div>
+      </div>
+      
+      <div id="comments-section" class="comments-section" style="display: none;">
+        <h3>Comments</h3>
+        
+        <div class="comment-input-section">
+          <textarea id="comment-input" placeholder="Write a comment..." maxlength="280"></textarea>
+          <div class="comment-footer">
+            <span id="comment-char-counter">0/280</span>
+            <button id="comment-btn" class="comment-btn">Comment</button>
+          </div>
+        </div>
+        
+        <div id="comments-loading" class="loading" style="display: none;">Loading comments...</div>
+        <div id="comments-list" class="comments-list"></div>
+      </div>
+    </div>
+  </main>
+  
+  <script src="config.js?v=1.0.0"></script>
+  <script src="utils.js?v=1.0.0"></script>
+  <script src="auth.js?v=1.0.0"></script>
+  <script src="validators.js?v=1.1.0"></script>
+  <script src="date-utils.js?v=1.0.0"></script>
+  <script src="api-client.js?v=1.0.0"></script>
+  <script src="profile-api.js?v=1.1.0"></script>
+  <script src="posts-api.js?v=1.0.0"></script>
+  <script src="comments-api.js?v=1.0.0"></script>
+  <script src="post-utils.js?v=1.1.0"></script>
+  <script src="navbar.js?v=1.4.0"></script>
+  <script src="post-detail.js?v=1.0.0"></script>
+</body>
+</html>
+

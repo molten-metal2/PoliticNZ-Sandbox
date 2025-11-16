@@ -1,83 +1,56 @@
-import json
-import os
-import boto3
-from decimal import Decimal
-from botocore.exceptions import ClientError
+from utils.response_builder import success_response, error_handler
+from utils.helpers import get_user_id_from_event, get_table, get_query_param
 
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['POSTS_TABLE_NAME'])
+posts_table = get_table('POSTS_TABLE_NAME')
+likes_table = get_table('LIKES_TABLE_NAME')
+comments_table = get_table('COMMENTS_TABLE_NAME')
 
-# Helper to convert Decimal to native Python types for JSON serialization
-def decimal_default(obj):
-    if isinstance(obj, Decimal):
-        return float(obj)
-    raise TypeError
-
+@error_handler
 def lambda_handler(event, context):
-    """
-    GET /posts/user - Get all posts for the authenticated user
-    GET /posts/user?user_id={id} - Get all posts for specific user
-    Authenticated endpoint - requires valid JWT token
-    """
-    try:
-        # Extract authenticated user_id from Cognito authorizer claims (for authorization)
-        auth_user_id = event['requestContext']['authorizer']['claims']['sub']
+    # Extract authenticated user_id from Cognito authorizer claims (for authorization)
+    auth_user_id = get_user_id_from_event(event)
+    
+    # Check if requesting another user's posts via query parameter
+    target_user_id = get_query_param(event, 'user_id', auth_user_id)
+    
+    # Query posts by user_id using GSI
+    response = posts_table.query(
+        IndexName='UserIdIndex',
+        KeyConditionExpression='user_id = :user_id',
+        ExpressionAttributeValues={
+            ':user_id': target_user_id
+        },
+        ScanIndexForward=False  # Sort by created_at descending (newest first)
+    )
+    
+    posts = response.get('Items', [])
+    
+    # For each post, add like and comment counts
+    for post in posts:
+        post_id = post['post_id']
         
-        # Check if requesting another user's posts via query parameter
-        query_params = event.get('queryStringParameters', {}) or {}
-        target_user_id = query_params.get('user_id', auth_user_id)
-        
-        # Query posts by user_id using GSI
-        response = table.query(
-            IndexName='UserIdIndex',
-            KeyConditionExpression='user_id = :user_id',
+        # Get like count
+        likes_response = likes_table.query(
+            KeyConditionExpression='target_id = :target_id',
             ExpressionAttributeValues={
-                ':user_id': target_user_id
-            },
-            ScanIndexForward=False  # Sort by created_at descending (newest first)
+                ':target_id': post_id
+            }
         )
+        post_likes = [like for like in likes_response.get('Items', []) if like.get('target_type') == 'post']
+        post['like_count'] = len(post_likes)
         
-        posts = response.get('Items', [])
+        # Check if current user liked this post
+        post['liked_by_user'] = any(like['user_id'] == auth_user_id for like in post_likes)
         
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+        # Get comment count
+        comments_response = comments_table.query(
+            KeyConditionExpression='post_id = :post_id',
+            ExpressionAttributeValues={
+                ':post_id': post_id
             },
-            'body': json.dumps(posts, default=decimal_default)
-        }
-        
-    except KeyError as e:
-        print(f"Authorization error: Missing claim in token - {str(e)}")
-        return {
-            'statusCode': 401,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({'error': 'Unauthorized - Invalid token'})
-        }
+            Select='COUNT'
+        )
+        post['comment_count'] = comments_response.get('Count', 0)
     
-    except ClientError as e:
-        print(f"DynamoDB error: {e.response['Error']['Code']}")
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({'error': 'Internal server error'})
-        }
-    
-    except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({'error': 'Internal server error'})
-        }
+    return success_response(posts)
 

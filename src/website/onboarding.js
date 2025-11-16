@@ -1,9 +1,7 @@
 // Onboarding flow for first-time users
 
 // Check if user is authenticated
-if (!auth.isAuthenticated()) {
-  window.location.href = 'index.html';
-}
+requireAuth();
 
 // Check if user already has a profile
 checkExistingProfile();
@@ -37,21 +35,20 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
     const displayName = document.getElementById('display_name').value.trim();
     const bio = document.getElementById('bio').value.trim();
     const politicalAlignment = document.getElementById('political_alignment').value;
+    const profilePrivate = document.getElementById('profile_private').checked;
     
     // Client-side validation
-    if (displayName.length < 2 || displayName.length > 20) {
-      throw new Error('Display name must be between 2 and 20 characters');
-    }
-    
-    if (bio.length > 500) {
-      throw new Error('Bio must not exceed 500 characters');
+    const validation = validateProfileData(displayName, bio, politicalAlignment);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
     }
     
     // Build profile data
     const profileData = {
       display_name: displayName,
       bio: bio,
-      political_alignment: politicalAlignment
+      political_alignment: politicalAlignment,
+      profile_private: profilePrivate
     };
     
     // Create profile
@@ -72,9 +69,10 @@ document.getElementById('onboardingForm').addEventListener('submit', async (e) =
 });
 
 // Real-time character counter for bio
+const bioConstants = getValidationConstants();
 document.getElementById('bio').addEventListener('input', (e) => {
   const charCount = e.target.value.length;
   const small = e.target.parentElement.querySelector('small');
-  small.textContent = `${charCount}/500 characters`;
+  small.textContent = `${charCount}/${bioConstants.BIO_MAX_LENGTH} characters`;
 });
 

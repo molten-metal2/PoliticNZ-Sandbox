@@ -48,6 +48,74 @@ resource "aws_dynamodb_table" "posts" {
 }
 
 #####################################################################
+# DYNAMODB TABLE FOR LIKES
+#####################################################################
+
+resource "aws_dynamodb_table" "post_likes" {
+  name         = "politicnz-post-likes"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "target_id"
+  range_key    = "user_id"
+
+  attribute {
+    name = "target_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "user_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "target_type"
+    type = "S"
+  }
+
+  # Global Secondary Index for querying likes by target_type
+  global_secondary_index {
+    name            = "TargetTypeIndex"
+    hash_key        = "target_type"
+    range_key       = "target_id"
+    projection_type = "ALL"
+  }
+}
+
+#####################################################################
+# DYNAMODB TABLE FOR COMMENTS
+#####################################################################
+
+resource "aws_dynamodb_table" "post_comments" {
+  name         = "politicnz-post-comments"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "post_id"
+  range_key    = "comment_id"
+
+  attribute {
+    name = "post_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "comment_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "created_at"
+    type = "S"
+  }
+
+  # Global Secondary Index for querying comments by post sorted by timestamp
+  global_secondary_index {
+    name            = "PostCommentsIndex"
+    hash_key        = "post_id"
+    range_key       = "created_at"
+    projection_type = "ALL"
+  }
+}
+
+#####################################################################
 # IAM POLICY FOR POSTS TABLE ACCESS
 #####################################################################
 
@@ -70,7 +138,11 @@ resource "aws_iam_role_policy" "lambda_posts_dynamodb_policy" {
         ]
         Resource = [
           aws_dynamodb_table.posts.arn,
-          "${aws_dynamodb_table.posts.arn}/index/*"
+          "${aws_dynamodb_table.posts.arn}/index/*",
+          aws_dynamodb_table.post_likes.arn,
+          "${aws_dynamodb_table.post_likes.arn}/index/*",
+          aws_dynamodb_table.post_comments.arn,
+          "${aws_dynamodb_table.post_comments.arn}/index/*"
         ]
       }
     ]
@@ -83,31 +155,31 @@ resource "aws_iam_role_policy" "lambda_posts_dynamodb_policy" {
 
 data "archive_file" "create_post_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/create_post.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_create_post.zip"
 }
 
 data "archive_file" "get_feed_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/get_feed.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_get_feed.zip"
 }
 
 data "archive_file" "get_user_posts_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/get_user_posts.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_get_user_posts.zip"
 }
 
 data "archive_file" "update_post_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/update_post.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_update_post.zip"
 }
 
 data "archive_file" "delete_post_lambda" {
   type        = "zip"
-  source_file = "${path.module}/../src/api/posts/delete_post.py"
+  source_dir  = "${path.module}/../src/api"
   output_path = "${path.module}/lambda_delete_post.zip"
 }
 
@@ -115,7 +187,7 @@ resource "aws_lambda_function" "create_post" {
   filename         = data.archive_file.create_post_lambda.output_path
   function_name    = "politicnz-create-post"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "create_post.lambda_handler"
+  handler         = "posts/create_post.lambda_handler"
   source_code_hash = data.archive_file.create_post_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -132,14 +204,16 @@ resource "aws_lambda_function" "get_feed" {
   filename         = data.archive_file.get_feed_lambda.output_path
   function_name    = "politicnz-get-feed"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "get_feed.lambda_handler"
+  handler         = "posts/get_feed.lambda_handler"
   source_code_hash = data.archive_file.get_feed_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
 
   environment {
     variables = {
-      POSTS_TABLE_NAME = aws_dynamodb_table.posts.name
+      POSTS_TABLE_NAME    = aws_dynamodb_table.posts.name
+      LIKES_TABLE_NAME    = aws_dynamodb_table.post_likes.name
+      COMMENTS_TABLE_NAME = aws_dynamodb_table.post_comments.name
     }
   }
 }
@@ -148,14 +222,16 @@ resource "aws_lambda_function" "get_user_posts" {
   filename         = data.archive_file.get_user_posts_lambda.output_path
   function_name    = "politicnz-get-user-posts"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "get_user_posts.lambda_handler"
+  handler         = "posts/get_user_posts.lambda_handler"
   source_code_hash = data.archive_file.get_user_posts_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
 
   environment {
     variables = {
-      POSTS_TABLE_NAME = aws_dynamodb_table.posts.name
+      POSTS_TABLE_NAME    = aws_dynamodb_table.posts.name
+      LIKES_TABLE_NAME    = aws_dynamodb_table.post_likes.name
+      COMMENTS_TABLE_NAME = aws_dynamodb_table.post_comments.name
     }
   }
 }
@@ -164,7 +240,7 @@ resource "aws_lambda_function" "update_post" {
   filename         = data.archive_file.update_post_lambda.output_path
   function_name    = "politicnz-update-post"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "update_post.lambda_handler"
+  handler         = "posts/update_post.lambda_handler"
   source_code_hash = data.archive_file.update_post_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -180,7 +256,7 @@ resource "aws_lambda_function" "delete_post" {
   filename         = data.archive_file.delete_post_lambda.output_path
   function_name    = "politicnz-delete-post"
   role            = aws_iam_role.lambda_execution.arn
-  handler         = "delete_post.lambda_handler"
+  handler         = "posts/delete_post.lambda_handler"
   source_code_hash = data.archive_file.delete_post_lambda.output_base64sha256
   runtime         = "python3.12"
   timeout         = 10
@@ -188,6 +264,178 @@ resource "aws_lambda_function" "delete_post" {
   environment {
     variables = {
       POSTS_TABLE_NAME = aws_dynamodb_table.posts.name
+    }
+  }
+}
+
+# Like/Comment Lambda Archives
+data "archive_file" "like_post_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../src/api"
+  output_path = "${path.module}/lambda_like_post.zip"
+}
+
+data "archive_file" "get_post_likes_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../src/api"
+  output_path = "${path.module}/lambda_get_post_likes.zip"
+}
+
+data "archive_file" "create_comment_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../src/api"
+  output_path = "${path.module}/lambda_create_comment.zip"
+}
+
+data "archive_file" "get_comments_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../src/api"
+  output_path = "${path.module}/lambda_get_comments.zip"
+}
+
+data "archive_file" "delete_comment_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../src/api"
+  output_path = "${path.module}/lambda_delete_comment.zip"
+}
+
+data "archive_file" "like_comment_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../src/api"
+  output_path = "${path.module}/lambda_like_comment.zip"
+}
+
+data "archive_file" "get_comment_likes_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../src/api"
+  output_path = "${path.module}/lambda_get_comment_likes.zip"
+}
+
+# Like Post Lambda
+resource "aws_lambda_function" "like_post" {
+  filename         = data.archive_file.like_post_lambda.output_path
+  function_name    = "politicnz-like-post"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "posts/like_post.lambda_handler"
+  source_code_hash = data.archive_file.like_post_lambda.output_base64sha256
+  runtime         = "python3.12"
+  timeout         = 10
+
+  environment {
+    variables = {
+      POSTS_TABLE_NAME    = aws_dynamodb_table.posts.name
+      LIKES_TABLE_NAME    = aws_dynamodb_table.post_likes.name
+      PROFILES_TABLE_NAME = aws_dynamodb_table.user_profiles.name
+    }
+  }
+}
+
+# Get Post Likes Lambda
+resource "aws_lambda_function" "get_post_likes" {
+  filename         = data.archive_file.get_post_likes_lambda.output_path
+  function_name    = "politicnz-get-post-likes"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "posts/get_post_likes.lambda_handler"
+  source_code_hash = data.archive_file.get_post_likes_lambda.output_base64sha256
+  runtime         = "python3.12"
+  timeout         = 10
+
+  environment {
+    variables = {
+      POSTS_TABLE_NAME = aws_dynamodb_table.posts.name
+      LIKES_TABLE_NAME = aws_dynamodb_table.post_likes.name
+    }
+  }
+}
+
+# Create Comment Lambda
+resource "aws_lambda_function" "create_comment" {
+  filename         = data.archive_file.create_comment_lambda.output_path
+  function_name    = "politicnz-create-comment"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "posts/create_comment.lambda_handler"
+  source_code_hash = data.archive_file.create_comment_lambda.output_base64sha256
+  runtime         = "python3.12"
+  timeout         = 10
+
+  environment {
+    variables = {
+      POSTS_TABLE_NAME    = aws_dynamodb_table.posts.name
+      COMMENTS_TABLE_NAME = aws_dynamodb_table.post_comments.name
+      PROFILES_TABLE_NAME = aws_dynamodb_table.user_profiles.name
+    }
+  }
+}
+
+# Get Comments Lambda
+resource "aws_lambda_function" "get_comments" {
+  filename         = data.archive_file.get_comments_lambda.output_path
+  function_name    = "politicnz-get-comments"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "posts/get_comments.lambda_handler"
+  source_code_hash = data.archive_file.get_comments_lambda.output_base64sha256
+  runtime         = "python3.12"
+  timeout         = 10
+
+  environment {
+    variables = {
+      POSTS_TABLE_NAME    = aws_dynamodb_table.posts.name
+      COMMENTS_TABLE_NAME = aws_dynamodb_table.post_comments.name
+      LIKES_TABLE_NAME    = aws_dynamodb_table.post_likes.name
+    }
+  }
+}
+
+# Delete Comment Lambda
+resource "aws_lambda_function" "delete_comment" {
+  filename         = data.archive_file.delete_comment_lambda.output_path
+  function_name    = "politicnz-delete-comment"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "posts/delete_comment.lambda_handler"
+  source_code_hash = data.archive_file.delete_comment_lambda.output_base64sha256
+  runtime         = "python3.12"
+  timeout         = 10
+
+  environment {
+    variables = {
+      COMMENTS_TABLE_NAME = aws_dynamodb_table.post_comments.name
+    }
+  }
+}
+
+# Like Comment Lambda
+resource "aws_lambda_function" "like_comment" {
+  filename         = data.archive_file.like_comment_lambda.output_path
+  function_name    = "politicnz-like-comment"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "posts/like_comment.lambda_handler"
+  source_code_hash = data.archive_file.like_comment_lambda.output_base64sha256
+  runtime         = "python3.12"
+  timeout         = 10
+
+  environment {
+    variables = {
+      COMMENTS_TABLE_NAME = aws_dynamodb_table.post_comments.name
+      LIKES_TABLE_NAME    = aws_dynamodb_table.post_likes.name
+      PROFILES_TABLE_NAME = aws_dynamodb_table.user_profiles.name
+    }
+  }
+}
+
+# Get Comment Likes Lambda
+resource "aws_lambda_function" "get_comment_likes" {
+  filename         = data.archive_file.get_comment_likes_lambda.output_path
+  function_name    = "politicnz-get-comment-likes"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "posts/get_comment_likes.lambda_handler"
+  source_code_hash = data.archive_file.get_comment_likes_lambda.output_base64sha256
+  runtime         = "python3.12"
+  timeout         = 10
+
+  environment {
+    variables = {
+      COMMENTS_TABLE_NAME = aws_dynamodb_table.post_comments.name
+      LIKES_TABLE_NAME    = aws_dynamodb_table.post_likes.name
     }
   }
 }
@@ -461,6 +709,454 @@ resource "aws_api_gateway_integration_response" "post_item_options" {
 }
 
 #####################################################################
+# LIKES AND COMMENTS API RESOURCES
+#####################################################################
+
+# /posts/{post_id}/like resource
+resource "aws_api_gateway_resource" "post_like" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.post_item.id
+  path_part   = "like"
+}
+
+# POST /posts/{post_id}/like - Like/Unlike post
+resource "aws_api_gateway_method" "like_post" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.post_like.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "like_post" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.post_like.id
+  http_method             = aws_api_gateway_method.like_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.like_post.invoke_arn
+}
+
+# /posts/{post_id}/likes resource
+resource "aws_api_gateway_resource" "post_likes" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.post_item.id
+  path_part   = "likes"
+}
+
+# GET /posts/{post_id}/likes - Get users who liked post
+resource "aws_api_gateway_method" "get_post_likes" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.post_likes.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "get_post_likes" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.post_likes.id
+  http_method             = aws_api_gateway_method.get_post_likes.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.get_post_likes.invoke_arn
+}
+
+# /posts/{post_id}/comments resource
+resource "aws_api_gateway_resource" "post_comments" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.post_item.id
+  path_part   = "comments"
+}
+
+# POST /posts/{post_id}/comments - Create comment
+resource "aws_api_gateway_method" "create_comment" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.post_comments.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "create_comment" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.post_comments.id
+  http_method             = aws_api_gateway_method.create_comment.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.create_comment.invoke_arn
+}
+
+# GET /posts/{post_id}/comments - Get comments
+resource "aws_api_gateway_method" "get_comments" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.post_comments.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "get_comments" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.post_comments.id
+  http_method             = aws_api_gateway_method.get_comments.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.get_comments.invoke_arn
+}
+
+# /posts/{post_id}/comments/{comment_id} resource
+resource "aws_api_gateway_resource" "comment_item" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.post_comments.id
+  path_part   = "{comment_id}"
+}
+
+# DELETE /posts/{post_id}/comments/{comment_id} - Delete comment
+resource "aws_api_gateway_method" "delete_comment" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.comment_item.id
+  http_method   = "DELETE"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "delete_comment" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.comment_item.id
+  http_method             = aws_api_gateway_method.delete_comment.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.delete_comment.invoke_arn
+}
+
+# /posts/{post_id}/comments/{comment_id}/like resource
+resource "aws_api_gateway_resource" "comment_like" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.comment_item.id
+  path_part   = "like"
+}
+
+# POST /posts/{post_id}/comments/{comment_id}/like - Like/Unlike comment
+resource "aws_api_gateway_method" "like_comment" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.comment_like.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "like_comment" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.comment_like.id
+  http_method             = aws_api_gateway_method.like_comment.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.like_comment.invoke_arn
+}
+
+# /posts/{post_id}/comments/{comment_id}/likes resource
+resource "aws_api_gateway_resource" "comment_likes" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.comment_item.id
+  path_part   = "likes"
+}
+
+# GET /posts/{post_id}/comments/{comment_id}/likes - Get users who liked comment
+resource "aws_api_gateway_method" "get_comment_likes" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.comment_likes.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "get_comment_likes" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.comment_likes.id
+  http_method             = aws_api_gateway_method.get_comment_likes.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.get_comment_likes.invoke_arn
+}
+
+# CORS OPTIONS for /posts/{post_id}/like
+resource "aws_api_gateway_method" "post_like_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.post_like.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_like_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_like.id
+  http_method = aws_api_gateway_method.post_like_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "post_like_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_like.id
+  http_method = aws_api_gateway_method.post_like_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "post_like_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_like.id
+  http_method = aws_api_gateway_method.post_like_options.http_method
+  status_code = aws_api_gateway_method_response.post_like_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.post_like_options]
+}
+
+# CORS OPTIONS for /posts/{post_id}/likes
+resource "aws_api_gateway_method" "post_likes_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.post_likes.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_likes_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_likes.id
+  http_method = aws_api_gateway_method.post_likes_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "post_likes_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_likes.id
+  http_method = aws_api_gateway_method.post_likes_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "post_likes_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_likes.id
+  http_method = aws_api_gateway_method.post_likes_options.http_method
+  status_code = aws_api_gateway_method_response.post_likes_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.post_likes_options]
+}
+
+# CORS OPTIONS for /posts/{post_id}/comments
+resource "aws_api_gateway_method" "post_comments_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.post_comments.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_comments_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_comments.id
+  http_method = aws_api_gateway_method.post_comments_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "post_comments_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_comments.id
+  http_method = aws_api_gateway_method.post_comments_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "post_comments_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.post_comments.id
+  http_method = aws_api_gateway_method.post_comments_options.http_method
+  status_code = aws_api_gateway_method_response.post_comments_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.post_comments_options]
+}
+
+# CORS OPTIONS for /posts/{post_id}/comments/{comment_id}
+resource "aws_api_gateway_method" "comment_item_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.comment_item.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "comment_item_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_item.id
+  http_method = aws_api_gateway_method.comment_item_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "comment_item_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_item.id
+  http_method = aws_api_gateway_method.comment_item_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "comment_item_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_item.id
+  http_method = aws_api_gateway_method.comment_item_options.http_method
+  status_code = aws_api_gateway_method_response.comment_item_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.comment_item_options]
+}
+
+# CORS OPTIONS for /posts/{post_id}/comments/{comment_id}/like
+resource "aws_api_gateway_method" "comment_like_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.comment_like.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "comment_like_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_like.id
+  http_method = aws_api_gateway_method.comment_like_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "comment_like_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_like.id
+  http_method = aws_api_gateway_method.comment_like_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "comment_like_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_like.id
+  http_method = aws_api_gateway_method.comment_like_options.http_method
+  status_code = aws_api_gateway_method_response.comment_like_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.comment_like_options]
+}
+
+# CORS OPTIONS for /posts/{post_id}/comments/{comment_id}/likes
+resource "aws_api_gateway_method" "comment_likes_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.comment_likes.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "comment_likes_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_likes.id
+  http_method = aws_api_gateway_method.comment_likes_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "comment_likes_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_likes.id
+  http_method = aws_api_gateway_method.comment_likes_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "comment_likes_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.comment_likes.id
+  http_method = aws_api_gateway_method.comment_likes_options.http_method
+  status_code = aws_api_gateway_method_response.comment_likes_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  depends_on = [aws_api_gateway_integration.comment_likes_options]
+}
+
+#####################################################################
 # LAMBDA PERMISSIONS
 #####################################################################
 
@@ -500,6 +1196,62 @@ resource "aws_lambda_permission" "delete_post" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.delete_post.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "like_post" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.like_post.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "get_post_likes" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_post_likes.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "create_comment" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.create_comment.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "get_comments" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_comments.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "delete_comment" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.delete_comment.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "like_comment" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.like_comment.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "get_comment_likes" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_comment_likes.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
 }

@@ -1,9 +1,6 @@
-// Home page - Protect page and check onboarding
+// Home page
 
-// Protect this page - redirect to login if not authenticated
-if (!auth.isAuthenticated()) {
-  window.location.href = 'index.html';
-}
+requireAuth();
 
 let currentUserId = null;
 
@@ -32,19 +29,23 @@ const postBtn = document.getElementById('post-btn');
 const charCounter = document.getElementById('char-counter');
 
 // Character counter
+const constants = getValidationConstants();
 postInput.addEventListener('input', () => {
   const length = postInput.value.length;
-  charCounter.textContent = `${length}/280`;
+  charCounter.textContent = `${length}/${constants.POST_CONTENT_MAX_LENGTH}`;
   
   // Disable button if empty or exceeds limit
-  postBtn.disabled = length === 0 || length > 280;
+  postBtn.disabled = length === 0 || length > constants.POST_CONTENT_MAX_LENGTH;
 });
 
 // Post creation
 postBtn.addEventListener('click', async () => {
   const content = postInput.value.trim();
   
-  if (!content || content.length > 280) {
+  // Validate content
+  const validation = validatePostContent(content);
+  if (!validation.isValid) {
+    alert(validation.error);
     return;
   }
   
@@ -57,7 +58,7 @@ postBtn.addEventListener('click', async () => {
     
     // Clear input
     postInput.value = '';
-    charCounter.textContent = '0/280';
+    charCounter.textContent = `0/${constants.POST_CONTENT_MAX_LENGTH}`;
     
     // Reload feed
     await loadFeed();
@@ -95,7 +96,8 @@ async function loadFeed() {
     // Display each post
     posts.forEach(post => {
       const isOwner = post.user_id === currentUserId;
-      const postElement = createPostElement(post, isOwner, false);
+      // On home page: no edit button, no delete button (home page is intended to be a read only feed)
+      const postElement = createPostElement(post, isOwner, false, false);
       feedElement.appendChild(postElement);
     });
     
@@ -106,6 +108,3 @@ async function loadFeed() {
     errorElement.style.display = 'block';
   }
 }
-
-// Note: deletePostConfirm, deletePostAction, formatPostTime, and escapeHtml 
-// are now provided by post-utils.js

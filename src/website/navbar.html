@@ -2,6 +2,17 @@
   <div>
     <a href="home.html" class="nav-link">Home</a>
     <a href="profile.html" class="nav-link">Profile</a>
+    <div style="position: relative;">
+      <input 
+        type="text" 
+        id="search-input" 
+        placeholder="Search users..." 
+        autocomplete="off"
+      />
+      <div id="search-dropdown" style="display: none; position: absolute; background: white; border: 1px solid;">
+        <div id="search-results"></div>
+      </div>
+    </div>
     <a href="#" onclick="auth.logout(); return false;" class="nav-link">Logout</a>
   </div>
 </nav>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - PoliticNZ</title>
+    <link rel="stylesheet" href="styles.css?v=1.0.0">
 </head>
 <body>
     <div id="navbar-container"></div>
@@ -26,7 +27,7 @@
                 <small>2-20 characters</small>
             </div>
 
-            <div>
+            <div id="bio-field">
                 <label for="bio">Bio</label>
                 <textarea 
                     id="bio" 
@@ -38,7 +39,7 @@
                 <small id="bio-counter">0/500 characters</small>
             </div>
 
-            <div>
+            <div id="political-alignment-field">
                 <label for="political_alignment">Political Alignment</label>
                 <select id="political_alignment" name="political_alignment">
                     <option value="">Prefer not to say</option>
@@ -46,6 +47,18 @@
                     <option value="Labour">Labour</option>
                     <option value="Independent">Independent</option>
                 </select>
+            </div>
+
+            <div id="privacy-field">
+                <label>
+                    <input type="checkbox" id="profile_private" name="profile_private">
+                    Make my profile private (others will only see my name)
+                </label>
+            </div>
+
+            <div id="privacy-notice" style="display: none;">
+                <p><strong>🔒 This profile is private</strong></p>
+                <p>This user has chosen to keep their profile information private.</p>
             </div>
 
             <div>
@@ -82,11 +95,18 @@
     </div>
 
     <script src="config.js?v=1.0.0"></script>
+    <script src="utils.js?v=1.0.0"></script>
     <script src="auth.js?v=1.0.0"></script>
-    <script src="profile-api.js?v=1.0.0"></script>
+    <script src="validators.js?v=1.1.0"></script>
+    <script src="date-utils.js?v=1.0.0"></script>
+    <script src="api-client.js?v=1.0.0"></script>
+    <script src="profile-api.js?v=1.1.0"></script>
     <script src="posts-api.js?v=1.0.0"></script>
-    <script src="post-utils.js?v=1.0.0"></script>
-    <script src="navbar.js?v=1.0.0"></script>
+    <script src="comments-api.js?v=1.0.0"></script>
+    <script src="post-utils.js?v=1.1.0"></script>
+    <script src="navbar.js?v=1.4.0"></script>
+    <script src="profile-view.js?v=1.2.0"></script>
+    <script src="profile-form.js?v=1.1.0"></script>
     <script src="profile.js?v=1.0.0"></script>
 </body>
 </html>

@@ -1,77 +1,57 @@
-import json
-import os
-import boto3
-from botocore.exceptions import ClientError
+from utils.response_builder import (
+    success_response,
+    not_found_response,
+    error_handler
+)
+from utils.helpers import (
+    get_user_id_from_event,
+    get_table,
+    get_query_param
+)
 
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['TABLE_NAME'])
+table = get_table('TABLE_NAME')
 
+
+def filter_private_profile(profile, is_own_profile):
+    # If viewing own profile or profile is not private, return full profile
+    if is_own_profile or not profile.get('profile_private', False):
+        return profile
+    
+    # For private profiles viewed by others, only show name and metadata
+    return {
+        'user_id': profile.get('user_id'),
+        'display_name': profile.get('display_name'),
+        'bio': '',
+        'political_alignment': '',
+        'profile_private': True,
+        'created_at': profile.get('created_at'),
+        'updated_at': profile.get('updated_at')
+    }
+
+@error_handler
 def lambda_handler(event, context):
     """
     GET /profile - Retrieve user profile
     GET /profile?user_id={id} - Retrieve specific user's profile
     Authenticated endpoint - requires valid JWT token
     """
-    try:
-        # Extract authenticated user_id from Cognito authorizer claims (for authorization)
-        auth_user_id = event['requestContext']['authorizer']['claims']['sub']
-        
-        # Check if requesting another user's profile via query parameter
-        query_params = event.get('queryStringParameters', {}) or {}
-        target_user_id = query_params.get('user_id', auth_user_id)
-        
-        # Get profile from DynamoDB
-        response = table.get_item(Key={'user_id': target_user_id})
-        
-        if 'Item' not in response:
-            return {
-                'statusCode': 404,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({'error': 'Profile not found'})
-            }
-        
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps(response['Item'])
-        }
-        
-    except KeyError as e:
-        print(f"Authorization error: Missing claim in token - {str(e)}")
-        return {
-            'statusCode': 401,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({'error': 'Unauthorized - Invalid token'})
-        }
+    # Extract authenticated user_id from Cognito authorizer claims (for authorization)
+    auth_user_id = get_user_id_from_event(event)
     
-    except ClientError as e:
-        print(f"DynamoDB error: {e.response['Error']['Code']}")
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({'error': 'Internal server error'})
-        }
+    # Check if requesting another user's profile via query parameter
+    target_user_id = get_query_param(event, 'user_id', auth_user_id)
     
-    except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({'error': 'Internal server error'})
-        }
+    # Get profile from DynamoDB
+    response = table.get_item(Key={'user_id': target_user_id})
+    
+    if 'Item' not in response:
+        return not_found_response('Profile not found')
+    
+    # Determine if viewing own profile
+    is_own_profile = auth_user_id == target_user_id
+    
+    # Filter profile data based on privacy settings
+    filtered_profile = filter_private_profile(response['Item'], is_own_profile)
+    
+    return success_response(filtered_profile)
 
