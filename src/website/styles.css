@@ -332,3 +332,450 @@ a:hover {
   border-radius: 4px;
   margin-bottom: 15px;
 }
+
+/* Index Page (Login) */
+.header {
+  text-align: center;
+  padding: 60px 20px 40px;
+}
+
+.header h1 {
+  font-size: 36px;
+  color: #1a73e8;
+  margin-bottom: 10px;
+}
+
+.header p {
+  font-size: 16px;
+  color: #666;
+}
+
+.login-section {
+  text-align: center;
+  padding: 20px;
+}
+
+.google-login-btn {
+  background-color: white;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.google-login-btn:hover {
+  border-color: #999;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Profile Page */
+h1, h2 {
+  margin: 20px 0 15px;
+  color: #333;
+}
+
+h1 {
+  font-size: 28px;
+  text-align: center;
+}
+
+h2 {
+  font-size: 22px;
+}
+
+#loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+#profile-content {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px 15px;
+}
+
+#profileForm > div {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #333;
+  font-size: 14px;
+}
+
+input[type="text"],
+input[type="email"],
+textarea,
+select {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #1a73e8;
+}
+
+textarea {
+  resize: vertical;
+}
+
+small {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #666;
+}
+
+input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+#privacy-notice {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+#privacy-notice p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+#success-message,
+#error-message {
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+#success-message {
+  background-color: #e8f5e9;
+  border: 1px solid #4caf50;
+  color: #2e7d32;
+}
+
+#error-message {
+  background-color: #fee;
+  border: 1px solid #faa;
+  color: #c00;
+}
+
+#view-mode-buttons,
+#edit-mode-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+button {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #1557b0;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+#cancelButton,
+#editButton {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+#cancelButton:hover,
+#editButton:hover {
+  background-color: #e5e5e5;
+}
+
+#error-content {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+#error-content button {
+  margin: 10px 5px;
+}
+
+.user-posts-section {
+  max-width: 600px;
+  margin: 40px auto 20px;
+  padding: 0 15px;
+}
+
+.user-posts-section h2 {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.posts-loading,
+.posts-error {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+  font-size: 14px;
+}
+
+.posts-error {
+  color: #c00;
+  background-color: #fee;
+  border: 1px solid #faa;
+  border-radius: 4px;
+}
+
+.user-posts {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Post Detail Page */
+.post-detail-container {
+  width: 100%;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #1a73e8;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+  font-size: 14px;
+}
+
+.error {
+  color: #c00;
+  background-color: #fee;
+  border: 1px solid #faa;
+  border-radius: 4px;
+}
+
+.likes-section {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.likes-section h3 {
+  font-size: 16px;
+  margin: 0 0 12px 0;
+  color: #333;
+}
+
+.likes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.like-item {
+  font-size: 14px;
+}
+
+.like-item a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.like-item a:hover {
+  text-decoration: underline;
+}
+
+/* Comments Section */
+.comments-section {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.comments-section h3 {
+  font-size: 16px;
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.comment-input-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+#comment-input {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 60px;
+}
+
+#comment-input:focus {
+  outline: none;
+  border-color: #1a73e8;
+}
+
+.comment-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+#comment-char-counter {
+  font-size: 13px;
+  color: #666;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.comment-item {
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background-color: #fafafa;
+  transition: opacity 0.3s;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.comment-author {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comment-author strong a {
+  color: #333;
+  font-size: 14px;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #666;
+}
+
+.comment-content {
+  margin-bottom: 8px;
+}
+
+.comment-content p {
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+.comment-interactions {
+  display: flex;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.like-comment-btn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  transition: background-color 0.2s;
+}
+
+.like-comment-btn:hover {
+  background-color: #eee;
+}
+
+.like-comment-btn.liked {
+  color: #e00;
+}
+
+.like-comment-btn.liked .like-icon {
+  color: #e00;
+}
+
+.delete-comment-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #666;
+}
+
+.delete-comment-btn:hover {
+  background-color: #fee;
+  border-color: #faa;
+  color: #c00;
+}
+
+.no-comments {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-size: 14px;
+}
