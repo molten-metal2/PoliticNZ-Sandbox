@@ -94,6 +94,29 @@ function createPostElement(post, isOwner, showEditButton = false, showDeleteButt
   return postCard;
 }
 
+// Create poll vote element for display on profile
+function createPollVoteElement(vote) {
+  const voteCard = document.createElement('div');
+  voteCard.className = 'poll-vote-card';
+  
+  voteCard.innerHTML = `
+    <div class="poll-vote-header">
+      <div class="poll-vote-author">
+        <strong><a href="profile.html?user_id=${vote.user_id}">${escapeHtml(vote.display_name)}</a></strong>
+        <span class="poll-vote-time">${formatRelativeTime(vote.voted_at)}</span>
+      </div>
+      <span class="poll-vote-badge">Poll Vote</span>
+    </div>
+    <div class="poll-vote-content">
+      <p class="poll-vote-question">${escapeHtml(vote.question)}</p>
+      <p class="poll-vote-answer"><strong>Voted:</strong> ${escapeHtml(vote.answer)}</p>
+      ${vote.reason ? `<p class="poll-vote-reason">"${escapeHtml(vote.reason)}"</p>` : ''}
+    </div>
+  `;
+  
+  return voteCard;
+}
+
 
 
 window.editPost = function(postId) {
