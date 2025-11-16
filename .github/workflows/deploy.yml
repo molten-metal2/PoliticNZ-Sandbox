@@ -56,7 +56,15 @@ jobs:
           echo "website_url=$(terraform output -raw website_url)" >> $GITHUB_OUTPUT
           echo "cognito_client_id=$(terraform output -raw cognito_client_id)" >> $GITHUB_OUTPUT
           echo "cognito_domain=$(terraform output -raw cognito_domain)" >> $GITHUB_OUTPUT
+          echo "api_gateway_id=$(terraform output -raw api_gateway_url | cut -d'/' -f3 | cut -d'.' -f1)" >> $GITHUB_OUTPUT
         working-directory: ./terraform
+
+      - name: Deploy API Gateway
+        run: |
+          aws apigateway create-deployment \
+            --rest-api-id ${{ steps.tf_outputs.outputs.api_gateway_id }} \
+            --stage-name sandbox \
+            --description "GitHub Actions deployment - $(date)"
 
       - name: Sync website files to S3
         run: |
