@@ -175,38 +175,59 @@ async function loadUserPosts() {
     errorElement.style.display = 'none';
     postsElement.innerHTML = '';
     
-    // Load posts for the viewed user
-    const posts = ProfileView.isOwnProfile ? await getUserPosts() : await getUserPosts(ProfileView.viewedUserId);
+    // Load posts and poll votes for the viewed user
+    const targetUserId = ProfileView.isOwnProfile ? null : ProfileView.viewedUserId;
+    const [posts, pollVotes] = await Promise.all([
+      getUserPosts(targetUserId),
+      getUserPollVotes(targetUserId)
+    ]);
     
     loadingElement.style.display = 'none';
     
-    if (posts.length === 0) {
-      const noPostsMessage = ProfileView.isOwnProfile 
-        ? "You haven't posted anything yet."
-        : "This user hasn't posted anything yet.";
-      postsElement.innerHTML = `<p class="no-posts">${noPostsMessage}</p>`;
+    if (posts.length === 0 && pollVotes.length === 0) {
+      const noActivityMessage = ProfileView.isOwnProfile 
+        ? "You haven't posted or voted on any polls yet."
+        : "This user hasn't posted or voted on any polls yet.";
+      postsElement.innerHTML = `<p class="no-posts">${noActivityMessage}</p>`;
       return;
     }
     
     // Update section title
     const sectionTitle = postsSection.querySelector('h2');
     if (sectionTitle) {
-      sectionTitle.textContent = ProfileView.isOwnProfile ? 'My Posts' : 'Posts';
+      sectionTitle.textContent = ProfileView.isOwnProfile ? 'My Activity' : 'Activity';
     }
     
-    // Display each post
-    posts.forEach(post => {
-      // Show edit and delete buttons only if viewing own profile
-      const showEditButton = ProfileView.isOwnProfile;
-      const showDeleteButton = ProfileView.isOwnProfile;
-      const postElement = createPostElement(post, ProfileView.isOwnProfile, showEditButton, showDeleteButton);
-      postsElement.appendChild(postElement);
+    // Merge posts and poll votes, sorted by timestamp
+    const activities = [
+      ...posts.map(p => ({ type: 'post', data: p, timestamp: p.created_at })),
+      ...pollVotes.map(v => ({ type: 'poll_vote', data: v, timestamp: v.voted_at }))
+    ];
+    
+    // Sort by timestamp descending (newest first)
+    activities.sort((a, b) => {
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+    
+    // Display each activity
+    activities.forEach(activity => {
+      if (activity.type === 'post') {
+        const post = activity.data;
+        const showEditButton = ProfileView.isOwnProfile;
+        const showDeleteButton = ProfileView.isOwnProfile;
+        const postElement = createPostElement(post, ProfileView.isOwnProfile, showEditButton, showDeleteButton);
+        postsElement.appendChild(postElement);
+      } else if (activity.type === 'poll_vote') {
+        const vote = activity.data;
+        const voteElement = createPollVoteElement(vote);
+        postsElement.appendChild(voteElement);
+      }
     });
     
   } catch (error) {
-    console.error('Failed to load user posts:', error);
+    console.error('Failed to load user activity:', error);
     loadingElement.style.display = 'none';
-    errorElement.textContent = 'Failed to load posts. Please try refreshing the page.';
+    errorElement.textContent = 'Failed to load activity. Please try refreshing the page.';
     errorElement.style.display = 'block';
   }
 }

@@ -6,6 +6,9 @@ VALID_POLITICAL_ALIGNMENTS = ['National', 'Labour', 'Independent', '']
 POST_CONTENT_MAX_LENGTH = 280
 COMMENT_CONTENT_MAX_LENGTH = 200
 
+POLL_REASON_MAX_LENGTH = 280
+VALID_POLL_ANSWERS = ['Yes', 'No']
+
 
 def validate_display_name(display_name):
     if not display_name or not display_name.strip():
@@ -93,6 +96,29 @@ def validate_profile_data(display_name, bio=None, political_alignment=None, prof
     is_valid, error = validate_profile_private(profile_private)
     if not is_valid:
         return (is_valid, error)
+    
+    return (True, None)
+
+
+def validate_poll_answer(answer):
+    if not answer or not answer.strip():
+        return (False, 'Answer is required')
+    
+    answer = answer.strip()
+    
+    if answer not in VALID_POLL_ANSWERS:
+        options_str = ', '.join(VALID_POLL_ANSWERS)
+        return (False, f'Answer must be either {options_str}')
+    
+    return (True, None)
+
+
+def validate_poll_reason(reason):
+    if reason is None or reason == '':
+        return (True, None)
+    
+    if len(reason) > POLL_REASON_MAX_LENGTH:
+        return (False, f'Reason must not exceed {POLL_REASON_MAX_LENGTH} characters')
     
     return (True, None)
 

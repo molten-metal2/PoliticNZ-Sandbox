@@ -15,7 +15,8 @@ let currentUserId = null;
     // Store user ID for checking post ownership
     currentUserId = profile.user_id;
     
-    // Load feed after profile check
+    // Load polls and feed after profile check
+    initializePolls();
     loadFeed();
   } catch (error) {
     console.error('Error checking profile:', error);
